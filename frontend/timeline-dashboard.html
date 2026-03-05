@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>School Signal Timeline</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    h2 { margin-bottom: 10px; }
+    .card { border: 1px solid #ddd; padding: 12px; margin-bottom: 10px; border-radius: 8px; }
+    .meta { color: #555; font-size: 14px; margin-top: 6px; }
+    .tag { display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 999px; font-size: 12px; margin-left: 8px; }
+  </style>
+</head>
+
+<body>
+
+<h2>School Signal Timeline Dashboard</h2>
+<p>Prototype timeline view of waiting list movement.</p>
+
+<div id="timeline"></div>
+
+<script>
+  // Prototype data (we will replace this with Supabase data later)
+  const updates = [
+    { school: "Wallington High School for Girls", rank: 120, date: "2026-03-25", source: "School Website", confidence: "High" },
+    { school: "Wallington High School for Girls", rank: 115, date: "2026-04-02", source: "Parent Report", confidence: "Medium" },
+    { school: "Wallington High School for Girls", rank: 108, date: "2026-04-12", source: "School Website", confidence: "High" },
+    { school: "Wilson's School", rank: 95, date: "2026-04-10", source: "School Website", confidence: "High" }
+  ];
+
+  function renderTimeline() {
+    const container = document.getElementById("timeline");
+    container.innerHTML = "";
+
+    // Sort newest first
+    updates.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    updates.forEach(u => {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.innerHTML = `
+        <strong>${u.school}</strong>
+        <div>Waiting list moved to rank <strong>${u.rank}</strong></div>
+        <div class="meta">
+          Date: ${u.date} · Source: ${u.source}
+          <span class="tag">Confidence: ${u.confidence}</span>
+        </div>
+      `;
+      container.appendChild(div);
+    });
+  }
+
+  renderTimeline();
+</script>
+
+</body>
+</html>
