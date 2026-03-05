@@ -1,1 +1,1 @@
-
+-- Supabase schema for School Signal
