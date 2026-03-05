@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>School Signal Admin</title>
+</head>
+
+<body>
+
+<h2>School Signal Admin Paste Tool</h2>
+
+<label>School Name</label>
+<br>
+<input type="text" id="school" placeholder="Enter school name">
+<br><br>
+
+<label>Date</label>
+<br>
+<input type="date" id="date">
+<br><br>
+
+<label>Source</label>
+<br>
+<select id="source">
+  <option>School Website</option>
+  <option>Parent Report</option>
+  <option>Forum</option>
+</select>
+
+<br><br>
+
+<label>Paste Update</label>
+<br>
+<textarea id="update" rows="6" cols="60"></textarea>
+
+<br><br>
+
+<button onclick="processUpdate()">Process Update</button>
+
+<script>
+
+function processUpdate(){
+
+  const school = document.getElementById("school").value;
+  const date = document.getElementById("date").value;
+  const source = document.getElementById("source").value;
+  const update = document.getElementById("update").value;
+
+  console.log("School:", school);
+  console.log("Date:", date);
+  console.log("Source:", source);
+  console.log("Update:", update);
+
+  alert("Update captured. Next step: send to Extractor Agent.");
+
+}
+
+</script>
+
+</body>
+</html>
