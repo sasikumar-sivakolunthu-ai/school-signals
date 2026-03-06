@@ -36,21 +36,64 @@
 
 <button onclick="processUpdate()">Process Update</button>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <script>
 
-function processUpdate(){
+const SUPABASE_URL = "https://qpcsjweadyhhwfbizlvm.supabase.co";
+
+const SUPABASE_KEY = "sb_publishable_UZLYBFAHRFl-aIvQqY5JyQ_DumhuL98";
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+
+async function processUpdate(){
 
   const school = document.getElementById("school").value;
   const date = document.getElementById("date").value;
   const source = document.getElementById("source").value;
   const update = document.getElementById("update").value;
 
-  console.log("School:", school);
-  console.log("Date:", date);
-  console.log("Source:", source);
-  console.log("Update:", update);
+  if(!school || !date){
+    alert("Please enter school and date");
+    return;
+  }
 
-  alert("Update captured. Next step: send to Extractor Agent.");
+  const rankMatch = update.match(/\d+/);
+  const rank = rankMatch ? parseInt(rankMatch[0]) : null;
+
+  const { data: schoolRow } = await supabase
+    .from("schools")
+    .select("id")
+    .eq("name", school)
+    .single();
+
+  if(!schoolRow){
+    alert("School not found in database");
+    return;
+  }
+
+  const school_id = schoolRow.id;
+
+  const { error } = await supabase
+    .from("waiting_list_updates")
+    .insert([
+      {
+        school_id: school_id,
+        rank_position: rank,
+        update_date: date,
+        source: source,
+        confidence_score: 0.8,
+        notes: update
+      }
+    ]);
+
+  if(error){
+    console.error(error);
+    alert("Error saving update");
+  } else {
+    alert("Update saved successfully");
+  }
 
 }
 
