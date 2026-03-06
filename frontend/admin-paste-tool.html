@@ -1,103 +1,110 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>School Signal Admin</title>
 </head>
-
 <body>
 
-<h2>School Signal Admin Paste Tool</h2>
+  <h2>School Signal Admin Paste Tool</h2>
 
-<label>School Name</label>
-<br>
-<input type="text" id="school" placeholder="Enter school name">
-<br><br>
+  <label>School Name</label>
+  <br>
+  <input type="text" id="school" placeholder="Enter school name">
+  <br><br>
 
-<label>Date</label>
-<br>
-<input type="date" id="date">
-<br><br>
+  <label>Date</label>
+  <br>
+  <input type="date" id="date">
+  <br><br>
 
-<label>Source</label>
-<br>
-<select id="source">
-  <option>School Website</option>
-  <option>Parent Report</option>
-  <option>Forum</option>
-</select>
+  <label>Source</label>
+  <br>
+  <select id="source">
+    <option>School Website</option>
+    <option>Parent Report</option>
+    <option>Forum</option>
+  </select>
+  <br><br>
 
-<br><br>
+  <label>Paste Update</label>
+  <br>
+  <textarea id="update" rows="6" cols="60"></textarea>
+  <br><br>
 
-<label>Paste Update</label>
-<br>
-<textarea id="update" rows="6" cols="60"></textarea>
+  <button onclick="processUpdate()">Process Update</button>
 
-<br><br>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://qpcsjweadyhhwfbizlvm.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_JqGyU1DvQRWV-In55Col1A_gza569Lo";
 
-<button onclick="processUpdate()">Process Update</button>
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    async function processUpdate() {
+      try {
+        const school = document.getElementById("school").value.trim();
+        const date = document.getElementById("date").value;
+        const source = document.getElementById("source").value;
+        const update = document.getElementById("update").value.trim();
 
-<script>
+        if (!school || !date || !update) {
+          alert("Please enter school, date and update text");
+          return;
+        }
 
-const SUPABASE_URL = "https://qpcsjweadyhhwfbizlvm.supabase.co";
+        const rankMatch = update.match(/\d+/);
+        const rank = rankMatch ? parseInt(rankMatch[0], 10) : null;
 
-const SUPABASE_KEY = "sb_publishable_UZLYBFAHRFl-aIvQqY5JyQ_DumhuL98";
+        const { data: schoolRow, error: schoolError } = await supabase
+          .from("schools")
+          .select("id, name")
+          .eq("name", school)
+          .single();
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        if (schoolError) {
+          console.error("School lookup error:", schoolError);
+          alert("School lookup failed: " + schoolError.message);
+          return;
+        }
 
+        if (!schoolRow) {
+          alert("School not found in database");
+          return;
+        }
 
-async function processUpdate(){
+        const { data, error } = await supabase
+          .from("waiting_list_updates")
+          .insert([
+            {
+              school_id: schoolRow.id,
+              rank_position: rank,
+              update_date: date,
+              source: source,
+              confidence_score: 0.8,
+              notes: update
+            }
+          ])
+          .select();
 
-  const school = document.getElementById("school").value;
-  const date = document.getElementById("date").value;
-  const source = document.getElementById("source").value;
-  const update = document.getElementById("update").value;
+        if (error) {
+          console.error("Insert error:", error);
+          alert("Error saving update: " + error.message);
+          return;
+        }
 
-  if(!school || !date){
-    alert("Please enter school and date");
-    return;
-  }
+        console.log("Insert success:", data);
+        alert("Update saved successfully");
 
-  const rankMatch = update.match(/\d+/);
-  const rank = rankMatch ? parseInt(rankMatch[0]) : null;
-
-  const { data: schoolRow } = await supabase
-    .from("schools")
-    .select("id")
-    .eq("name", school)
-    .single();
-
-  if(!schoolRow){
-    alert("School not found in database");
-    return;
-  }
-
-  const school_id = schoolRow.id;
-
-  const { error } = await supabase
-    .from("waiting_list_updates")
-    .insert([
-      {
-        school_id: school_id,
-        rank_position: rank,
-        update_date: date,
-        source: source,
-        confidence_score: 0.8,
-        notes: update
+        document.getElementById("school").value = "";
+        document.getElementById("date").value = "";
+        document.getElementById("update").value = "";
+      } catch (err) {
+        console.error("Unexpected error:", err);
+        alert("Unexpected error: " + err.message);
       }
-    ]);
-
-  if(error){
-    console.error(error);
-    alert("Error saving update");
-  } else {
-    alert("Update saved successfully");
-  }
-
-}
-
-</script>
+    }
+  </script>
 
 </body>
 </html>
