@@ -1,56 +1,206 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>School Signal Timeline</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 30px; }
-    h2 { margin-bottom: 10px; }
-    .card { border: 1px solid #ddd; padding: 12px; margin-bottom: 10px; border-radius: 8px; }
-    .meta { color: #555; font-size: 14px; margin-top: 6px; }
-    .tag { display: inline-block; padding: 2px 8px; border: 1px solid #ccc; border-radius: 999px; font-size: 12px; margin-left: 8px; }
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background: #f8fafc;
+      color: #111827;
+    }
+
+    h2 {
+      margin-bottom: 8px;
+    }
+
+    p {
+      margin-top: 0;
+      color: #4b5563;
+    }
+
+    .card {
+      border: 1px solid #e5e7eb;
+      background: #ffffff;
+      padding: 14px;
+      margin-bottom: 12px;
+      border-radius: 10px;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+
+    .meta {
+      color: #6b7280;
+      font-size: 14px;
+      margin-top: 8px;
+    }
+
+    .tag {
+      display: inline-block;
+      padding: 2px 8px;
+      border: 1px solid #d1d5db;
+      border-radius: 999px;
+      font-size: 12px;
+      margin-left: 8px;
+      background: #f9fafb;
+    }
+
+    .status {
+      margin: 16px 0;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .loading {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+
+    .error {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+
+    .empty {
+      background: #fffbeb;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
   </style>
 </head>
-
 <body>
+  <h2>School Signal Timeline Dashboard</h2>
+  <p>Live timeline view of waiting list movement from Supabase.</p>
 
-<h2>School Signal Timeline Dashboard</h2>
-<p>Prototype timeline view of waiting list movement.</p>
+  <div id="status" class="status loading">Loading updates from Supabase...</div>
+  <div id="timeline"></div>
 
-<div id="timeline"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://qpcsjweadyhhwfbizlvm.supabase.co";
 
-<script>
-  // Prototype data (we will replace this with Supabase data later)
-  const updates = [
-    { school: "Wallington High School for Girls", rank: 120, date: "2026-03-25", source: "School Website", confidence: "High" },
-    { school: "Wallington High School for Girls", rank: 115, date: "2026-04-02", source: "Parent Report", confidence: "Medium" },
-    { school: "Wallington High School for Girls", rank: 108, date: "2026-04-12", source: "School Website", confidence: "High" },
-    { school: "Wilson's School", rank: 95, date: "2026-04-10", source: "School Website", confidence: "High" }
-  ];
+    // Replace this with your Supabase Publishable key
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_UZLYBFAHRFl-aIvQqY5JyQ_DumhuL98";
 
-  function renderTimeline() {
-    const container = document.getElementById("timeline");
-    container.innerHTML = "";
+    const supabaseClient = window.supabase.createClient(
+      SUPABASE_URL,
+      SUPABASE_PUBLISHABLE_KEY
+    );
 
-    // Sort newest first
-    updates.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const statusEl = document.getElementById("status");
+    const timelineEl = document.getElementById("timeline");
 
-    updates.forEach(u => {
-      const div = document.createElement("div");
-      div.className = "card";
-      div.innerHTML = `
-        <strong>${u.school}</strong>
-        <div>Waiting list moved to rank <strong>${u.rank}</strong></div>
-        <div class="meta">
-          Date: ${u.date} · Source: ${u.source}
-          <span class="tag">Confidence: ${u.confidence}</span>
-        </div>
-      `;
-      container.appendChild(div);
-    });
-  }
+    function setStatus(message, type) {
+      statusEl.textContent = message;
+      statusEl.className = `status ${type}`;
+    }
 
-  renderTimeline();
-</script>
+    function escapeHtml(value) {
+      if (value === null || value === undefined) return "";
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
 
+    function formatConfidence(confidenceScore) {
+      if (confidenceScore === null || confidenceScore === undefined) {
+        return "Unknown";
+      }
+
+      const score = Number(confidenceScore);
+
+      if (Number.isNaN(score)) {
+        return escapeHtml(confidenceScore);
+      }
+
+      if (score >= 0.85) return `High (${score.toFixed(2)})`;
+      if (score >= 0.6) return `Medium (${score.toFixed(2)})`;
+      return `Low (${score.toFixed(2)})`;
+    }
+
+    function renderTimeline(records) {
+      timelineEl.innerHTML = "";
+
+      records.forEach((record) => {
+        const schoolName =
+          record.schools?.name ||
+          `School ID: ${record.school_id || "Unknown"}`;
+
+        const rankPosition =
+          record.rank_position !== null && record.rank_position !== undefined
+            ? record.rank_position
+            : "-";
+
+        const updateDate = record.update_date || "-";
+        const source = record.source || "-";
+        const confidence = formatConfidence(record.confidence_score);
+        const notes = record.notes ? `<div class="meta">Notes: ${escapeHtml(record.notes)}</div>` : "";
+
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `
+          <strong>${escapeHtml(schoolName)}</strong>
+          <div>Waiting list moved to rank <strong>${escapeHtml(rankPosition)}</strong></div>
+          <div class="meta">
+            Date: ${escapeHtml(updateDate)} · Source: ${escapeHtml(source)}
+            <span class="tag">Confidence: ${escapeHtml(confidence)}</span>
+          </div>
+          ${notes}
+        `;
+
+        timelineEl.appendChild(card);
+      });
+    }
+
+    async function loadTimeline() {
+      try {
+        setStatus("Loading updates from Supabase...", "loading");
+
+        const { data, error } = await supabaseClient
+          .from("waiting_list_updates")
+          .select(`
+            id,
+            school_id,
+            rank_position,
+            update_date,
+            source,
+            confidence_score,
+            notes,
+            created_at,
+            schools (
+              name
+            )
+          `)
+          .order("update_date", { ascending: false })
+          .limit(50);
+
+        if (error) {
+          throw error;
+        }
+
+        if (!data || data.length === 0) {
+          timelineEl.innerHTML = "";
+          setStatus("No updates found yet. Add a row in Supabase Table Editor.", "empty");
+          return;
+        }
+
+        renderTimeline(data);
+        setStatus(`Loaded ${data.length} update(s) successfully.`, "loading");
+      } catch (err) {
+        console.error("Error loading timeline:", err);
+        timelineEl.innerHTML = "";
+        setStatus(`Error loading data: ${err.message}`, "error");
+      }
+    }
+
+    loadTimeline();
+  </script>
 </body>
 </html>
