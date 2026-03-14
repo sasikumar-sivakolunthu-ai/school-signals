@@ -3,88 +3,440 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>School Signal Timeline</title>
+  <title>School Signal Dashboard</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 30px;
-      background: #f8fafc;
-      color: #111827;
+    :root {
+      --bg: #f3f6fb;
+      --panel: #ffffff;
+      --border: #e5e7eb;
+      --text: #111827;
+      --muted: #6b7280;
+      --success-bg: #ecfdf5;
+      --success-text: #166534;
+      --info-bg: #eff6ff;
+      --info-text: #1d4ed8;
+      --warn-bg: #fff7ed;
+      --warn-text: #9a3412;
+      --danger-bg: #fef2f2;
+      --danger-text: #b91c1c;
+      --shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+      --radius: 18px;
     }
 
-    h2 {
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Inter, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    .page {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+
+    .topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 20px;
+      margin-bottom: 24px;
+    }
+
+    .title-wrap h1 {
+      margin: 0;
+      font-size: 36px;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+    }
+
+    .title-wrap p {
+      margin: 10px 0 0;
+      color: var(--muted);
+      font-size: 16px;
+    }
+
+    .top-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-end;
+      min-width: 280px;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 10px 14px;
+      color: var(--muted);
+      box-shadow: var(--shadow);
+      white-space: nowrap;
+    }
+
+    .filter-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 12px;
+      width: 100%;
+    }
+
+    .filter-card label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
       margin-bottom: 8px;
     }
 
-    p {
-      margin-top: 0;
-      color: #4b5563;
+    .filter-card select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font: inherit;
+      background: white;
+    }
+
+    .status {
+      margin-bottom: 20px;
+      border-radius: 14px;
+      padding: 14px 16px;
+      font-size: 14px;
+      border: 1px solid transparent;
+    }
+
+    .status.info {
+      background: var(--info-bg);
+      color: var(--info-text);
+      border-color: #bfdbfe;
+    }
+
+    .status.success {
+      background: var(--success-bg);
+      color: var(--success-text);
+      border-color: #bbf7d0;
+    }
+
+    .status.warn {
+      background: var(--warn-bg);
+      color: var(--warn-text);
+      border-color: #fed7aa;
+    }
+
+    .status.error {
+      background: var(--danger-bg);
+      color: var(--danger-text);
+      border-color: #fecaca;
+    }
+
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+
+    .stats-grid {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      margin-bottom: 18px;
+    }
+
+    .content-grid {
+      grid-template-columns: 1.5fr 1fr;
+      align-items: start;
     }
 
     .card {
-      border: 1px solid #e5e7eb;
-      background: #ffffff;
-      padding: 14px;
-      margin-bottom: 12px;
-      border-radius: 10px;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 20px;
     }
 
-    .meta {
-      color: #6b7280;
+    .stat-card .label {
+      color: var(--muted);
       font-size: 14px;
-      margin-top: 8px;
+      margin-bottom: 12px;
+    }
+
+    .stat-card .value {
+      font-size: 32px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+
+    .stat-card .sub {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .section-title {
+      margin: 0 0 14px;
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .section-subtitle {
+      margin: -4px 0 18px;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .latest-card h3 {
+      margin: 0 0 6px;
+      font-size: 22px;
+    }
+
+    .latest-rank {
+      font-size: 18px;
+      margin-bottom: 14px;
+    }
+
+    .meta-row {
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 10px;
     }
 
     .tag {
       display: inline-block;
-      padding: 2px 8px;
-      border: 1px solid #d1d5db;
+      border: 1px solid var(--border);
       border-radius: 999px;
+      padding: 4px 10px;
       font-size: 12px;
-      margin-left: 8px;
+      color: #374151;
       background: #f9fafb;
+      margin-left: 8px;
     }
 
-    .status {
-      margin: 16px 0;
-      padding: 10px 12px;
-      border-radius: 8px;
+    .tag.official {
+      background: #ecfdf5;
+      color: #166534;
+      border-color: #bbf7d0;
+    }
+
+    .tag.parent {
+      background: #fff7ed;
+      color: #9a3412;
+      border-color: #fed7aa;
+    }
+
+    .tag.forum {
+      background: #f3f4f6;
+      color: #4b5563;
+      border-color: #d1d5db;
+    }
+
+    .tag.unknown {
+      background: #f9fafb;
+      color: #6b7280;
+      border-color: #e5e7eb;
+    }
+
+    .notes {
+      margin-top: 14px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: #f9fafb;
+      color: #374151;
+      font-size: 14px;
+      border: 1px solid var(--border);
+    }
+
+    .chart-wrap {
+      height: 340px;
+    }
+
+    .timeline-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      margin-top: 6px;
+    }
+
+    .timeline-item {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      background: #fcfdff;
+    }
+
+    .timeline-item-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+
+    .timeline-school {
+      font-weight: 700;
+      font-size: 18px;
+      margin: 0 0 4px;
+    }
+
+    .timeline-rank {
+      font-size: 16px;
+      margin: 0;
+    }
+
+    .timeline-date {
+      color: var(--muted);
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .timeline-meta {
+      color: var(--muted);
+      font-size: 14px;
+      margin-top: 6px;
+    }
+
+    .timeline-notes {
+      margin-top: 10px;
+      color: #374151;
       font-size: 14px;
     }
 
-    .loading {
-      background: #eff6ff;
-      color: #1d4ed8;
-      border: 1px solid #bfdbfe;
+    .empty-state {
+      padding: 28px;
+      border: 1px dashed #cbd5e1;
+      border-radius: 16px;
+      text-align: center;
+      color: var(--muted);
+      background: #fff;
     }
 
-    .error {
-      background: #fef2f2;
-      color: #b91c1c;
-      border: 1px solid #fecaca;
+    @media (max-width: 1080px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .content-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
-    .empty {
-      background: #fffbeb;
-      color: #92400e;
-      border: 1px solid #fde68a;
+    @media (max-width: 700px) {
+      .topbar {
+        flex-direction: column;
+      }
+
+      .top-actions {
+        width: 100%;
+        align-items: stretch;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .title-wrap h1 {
+        font-size: 28px;
+      }
+
+      .timeline-item-top {
+        flex-direction: column;
+      }
     }
   </style>
 </head>
 <body>
-  <h2>School Signal Timeline Dashboard</h2>
-  <p>Live timeline view of waiting list movement from Supabase.</p>
+  <div class="page">
+    <div class="topbar">
+      <div class="title-wrap">
+        <h1>School Signal Dashboard</h1>
+        <p>Live admission movement intelligence powered by Supabase.</p>
+      </div>
 
-  <div id="status" class="status loading">Loading updates from Supabase...</div>
-  <div id="timeline"></div>
+      <div class="top-actions">
+        <div class="pill" id="lastRefreshed">Loading data...</div>
+
+        <div class="filter-card">
+          <label for="schoolFilter">School Selector</label>
+          <select id="schoolFilter">
+            <option value="">All schools</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div id="status" class="status info">Loading updates from Supabase...</div>
+
+    <div class="grid stats-grid">
+      <div class="card stat-card">
+        <div class="label">Total Updates</div>
+        <div class="value" id="statTotalUpdates">0</div>
+        <div class="sub">Records loaded into timeline</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="label">Latest Rank</div>
+        <div class="value" id="statLatestRank">-</div>
+        <div class="sub">Most recent known position</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="label">Movement Span</div>
+        <div class="value" id="statMovementSpan">-</div>
+        <div class="sub">Difference between oldest and latest rank</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="label">Movement Rate</div>
+        <div class="value" id="statMovementRate">-</div>
+        <div class="sub">Estimated places per week</div>
+      </div>
+
+      <div class="card stat-card">
+        <div class="label">Average Confidence</div>
+        <div class="value" id="statAvgConfidence">-</div>
+        <div class="sub">Across loaded updates</div>
+      </div>
+    </div>
+
+    <div class="grid content-grid">
+      <div class="card">
+        <h2 class="section-title">Movement Trend</h2>
+        <p class="section-subtitle">Lower rank numbers are better, so the chart climbs upward when the position improves.</p>
+        <div class="chart-wrap">
+          <canvas id="movementChart"></canvas>
+        </div>
+      </div>
+
+      <div class="card latest-card">
+        <h2 class="section-title">Latest Update</h2>
+        <div id="latestUpdateBlock" class="empty-state">No latest update available yet.</div>
+
+        <div style="margin-top: 18px;">
+          <h2 class="section-title" style="margin-bottom: 10px;">Prediction Card</h2>
+          <div id="predictionBlock" class="empty-state">Not enough data to generate a projection yet.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top: 18px;">
+      <h2 class="section-title">Timeline Feed</h2>
+      <p class="section-subtitle">Newest updates first, with notes, confidence and source credibility.</p>
+      <div id="timeline"></div>
+    </div>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
     const SUPABASE_URL = "https://qpcsjweadyhhwfbizlvm.supabase.co";
-
-    // Replace this with your Supabase Publishable key
-    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_UZLYBFAHRFl-aIvQqY5JyQ_DumhuL98";
+    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_JqGyU1DvQRWV-In55Col1A_gza569Lo";
 
     const supabaseClient = window.supabase.createClient(
       SUPABASE_URL,
@@ -93,6 +445,20 @@
 
     const statusEl = document.getElementById("status");
     const timelineEl = document.getElementById("timeline");
+    const lastRefreshedEl = document.getElementById("lastRefreshed");
+    const latestUpdateBlockEl = document.getElementById("latestUpdateBlock");
+    const predictionBlockEl = document.getElementById("predictionBlock");
+    const schoolFilterEl = document.getElementById("schoolFilter");
+
+    const statTotalUpdatesEl = document.getElementById("statTotalUpdates");
+    const statLatestRankEl = document.getElementById("statLatestRank");
+    const statMovementSpanEl = document.getElementById("statMovementSpan");
+    const statMovementRateEl = document.getElementById("statMovementRate");
+    const statAvgConfidenceEl = document.getElementById("statAvgConfidence");
+
+    let movementChart = null;
+    let allRecords = [];
+    let allSchools = [];
 
     function setStatus(message, type) {
       statusEl.textContent = message;
@@ -109,59 +475,363 @@
         .replaceAll("'", "&#039;");
     }
 
-    function formatConfidence(confidenceScore) {
-      if (confidenceScore === null || confidenceScore === undefined) {
+    function formatConfidenceLabel(score) {
+      if (score === null || score === undefined || Number.isNaN(Number(score))) {
         return "Unknown";
       }
 
-      const score = Number(confidenceScore);
+      const n = Number(score);
+      if (n >= 0.85) return `High (${n.toFixed(2)})`;
+      if (n >= 0.6) return `Medium (${n.toFixed(2)})`;
+      return `Low (${n.toFixed(2)})`;
+    }
 
-      if (Number.isNaN(score)) {
-        return escapeHtml(confidenceScore);
+    function getSourceClass(source) {
+      const value = (source || "").toLowerCase();
+
+      if (value.includes("school website") || value.includes("official") || value.includes("school email")) {
+        return "official";
+      }
+      if (value.includes("parent")) {
+        return "parent";
+      }
+      if (value.includes("forum")) {
+        return "forum";
+      }
+      return "unknown";
+    }
+
+    function getSourceCredibilityLabel(source) {
+      const value = (source || "").toLowerCase();
+
+      if (value.includes("school website") || value.includes("official") || value.includes("school email")) {
+        return "Official";
+      }
+      if (value.includes("parent")) {
+        return "Parent";
+      }
+      if (value.includes("forum")) {
+        return "Forum";
+      }
+      return "Unknown";
+    }
+
+    function formatDateForDisplay(dateString) {
+      if (!dateString) return "-";
+      return dateString;
+    }
+
+    function calculateMovementRate(records) {
+      if (!records || records.length < 2) return null;
+
+      const newest = records[0];
+      const oldest = records[records.length - 1];
+
+      if (
+        newest.rank_position === null || newest.rank_position === undefined ||
+        oldest.rank_position === null || oldest.rank_position === undefined
+      ) {
+        return null;
       }
 
-      if (score >= 0.85) return `High (${score.toFixed(2)})`;
-      if (score >= 0.6) return `Medium (${score.toFixed(2)})`;
-      return `Low (${score.toFixed(2)})`;
+      const newestDate = new Date(newest.update_date);
+      const oldestDate = new Date(oldest.update_date);
+      const diffMs = newestDate - oldestDate;
+      const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+      if (diffDays <= 0) return null;
+
+      const movement = oldest.rank_position - newest.rank_position;
+      const perWeek = (movement / diffDays) * 7;
+
+      return perWeek;
+    }
+
+    function buildPrediction(records) {
+      if (!records || records.length < 2) {
+        return null;
+      }
+
+      const latest = records[0];
+      const rate = calculateMovementRate(records);
+
+      if (rate === null || latest.rank_position === null || latest.rank_position === undefined) {
+        return null;
+      }
+
+      const projected4Weeks = Math.round(latest.rank_position - (rate * 4));
+      const boundedProjection = projected4Weeks < 1 ? 1 : projected4Weeks;
+
+      let confidence = "Low";
+      if (records.length >= 4) confidence = "High";
+      else if (records.length >= 3) confidence = "Medium";
+
+      return {
+        projectedRank4Weeks: boundedProjection,
+        weeklyRate: rate,
+        confidence
+      };
+    }
+
+    function updateStats(records) {
+      statTotalUpdatesEl.textContent = records.length;
+
+      if (records.length === 0) {
+        statLatestRankEl.textContent = "-";
+        statMovementSpanEl.textContent = "-";
+        statMovementRateEl.textContent = "-";
+        statAvgConfidenceEl.textContent = "-";
+        return;
+      }
+
+      const latest = records[0];
+      const oldest = records[records.length - 1];
+
+      statLatestRankEl.textContent =
+        latest.rank_position !== null && latest.rank_position !== undefined
+          ? latest.rank_position
+          : "-";
+
+      if (
+        latest.rank_position !== null &&
+        latest.rank_position !== undefined &&
+        oldest.rank_position !== null &&
+        oldest.rank_position !== undefined
+      ) {
+        const span = oldest.rank_position - latest.rank_position;
+        statMovementSpanEl.textContent = span;
+      } else {
+        statMovementSpanEl.textContent = "-";
+      }
+
+      const movementRate = calculateMovementRate(records);
+      statMovementRateEl.textContent =
+        movementRate !== null ? `${Math.round(movementRate)}/wk` : "-";
+
+      const confidenceValues = records
+        .map(r => Number(r.confidence_score))
+        .filter(v => !Number.isNaN(v));
+
+      if (confidenceValues.length > 0) {
+        const avg = confidenceValues.reduce((sum, v) => sum + v, 0) / confidenceValues.length;
+        statAvgConfidenceEl.textContent = avg.toFixed(2);
+      } else {
+        statAvgConfidenceEl.textContent = "-";
+      }
+    }
+
+    function renderLatestUpdate(record) {
+      if (!record) {
+        latestUpdateBlockEl.innerHTML = "No latest update available yet.";
+        return;
+      }
+
+      const schoolName = record.schools?.name || "Unknown school";
+      const rank = record.rank_position ?? "-";
+      const date = formatDateForDisplay(record.update_date);
+      const source = record.source || "-";
+      const confidence = formatConfidenceLabel(record.confidence_score);
+      const sourceLabel = getSourceCredibilityLabel(source);
+      const sourceClass = getSourceClass(source);
+      const notes = record.notes
+        ? `<div class="notes">${escapeHtml(record.notes)}</div>`
+        : "";
+
+      latestUpdateBlockEl.innerHTML = `
+        <h3>${escapeHtml(schoolName)}</h3>
+        <div class="latest-rank">Waiting list moved to rank <strong>${escapeHtml(rank)}</strong></div>
+        <div class="meta-row">
+          Date: ${escapeHtml(date)}
+          <span class="tag ${sourceClass}">${escapeHtml(sourceLabel)}</span>
+          <span class="tag">${escapeHtml(confidence)}</span>
+        </div>
+        ${notes}
+      `;
+    }
+
+    function renderPrediction(records) {
+      const prediction = buildPrediction(records);
+
+      if (!prediction) {
+        predictionBlockEl.innerHTML = "Not enough data to generate a projection yet.";
+        return;
+      }
+
+      const trendText = prediction.weeklyRate > 0
+        ? `The list is improving at about ${Math.round(prediction.weeklyRate)} places per week.`
+        : `Movement is currently flat or unclear.`;
+
+      predictionBlockEl.innerHTML = `
+        <div style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">4-week projection</div>
+        <div style="font-size: 28px; font-weight: 700; margin-bottom: 8px;">Rank ${prediction.projectedRank4Weeks}</div>
+        <div style="font-size: 14px; color: #374151; margin-bottom: 10px;">${trendText}</div>
+        <div>
+          <span class="tag">Confidence: ${escapeHtml(prediction.confidence)}</span>
+        </div>
+      `;
     }
 
     function renderTimeline(records) {
-      timelineEl.innerHTML = "";
+      if (!records.length) {
+        timelineEl.innerHTML = '<div class="empty-state">No updates found yet.</div>';
+        return;
+      }
 
-      records.forEach((record) => {
-        const schoolName =
-          record.schools?.name ||
-          `School ID: ${record.school_id || "Unknown"}`;
-
-        const rankPosition =
-          record.rank_position !== null && record.rank_position !== undefined
-            ? record.rank_position
-            : "-";
-
-        const updateDate = record.update_date || "-";
+      const html = records.map(record => {
+        const schoolName = record.schools?.name || "Unknown school";
+        const rank = record.rank_position ?? "-";
+        const date = formatDateForDisplay(record.update_date);
         const source = record.source || "-";
-        const confidence = formatConfidence(record.confidence_score);
-        const notes = record.notes ? `<div class="meta">Notes: ${escapeHtml(record.notes)}</div>` : "";
+        const confidence = formatConfidenceLabel(record.confidence_score);
+        const sourceLabel = getSourceCredibilityLabel(source);
+        const sourceClass = getSourceClass(source);
+        const notes = record.notes
+          ? `<div class="timeline-notes">${escapeHtml(record.notes)}</div>`
+          : "";
 
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-          <strong>${escapeHtml(schoolName)}</strong>
-          <div>Waiting list moved to rank <strong>${escapeHtml(rankPosition)}</strong></div>
-          <div class="meta">
-            Date: ${escapeHtml(updateDate)} · Source: ${escapeHtml(source)}
-            <span class="tag">Confidence: ${escapeHtml(confidence)}</span>
+        return `
+          <div class="timeline-item">
+            <div class="timeline-item-top">
+              <div>
+                <div class="timeline-school">${escapeHtml(schoolName)}</div>
+                <div class="timeline-rank">Waiting list moved to rank <strong>${escapeHtml(rank)}</strong></div>
+              </div>
+              <div class="timeline-date">${escapeHtml(date)}</div>
+            </div>
+            <div class="timeline-meta">
+              Source: ${escapeHtml(source)}
+              <span class="tag ${sourceClass}">${escapeHtml(sourceLabel)}</span>
+              <span class="tag">${escapeHtml(confidence)}</span>
+            </div>
+            ${notes}
           </div>
-          ${notes}
         `;
+      }).join("");
 
-        timelineEl.appendChild(card);
+      timelineEl.innerHTML = `<div class="timeline-list">${html}</div>`;
+    }
+
+    function renderChart(records) {
+      const chartRecords = [...records].reverse();
+
+      const labels = chartRecords.map(r => r.update_date || "-");
+      const dataPoints = chartRecords.map(r => r.rank_position);
+
+      const ctx = document.getElementById("movementChart").getContext("2d");
+
+      if (movementChart) {
+        movementChart.destroy();
+      }
+
+      movementChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels,
+          datasets: [
+            {
+              label: "Rank Position",
+              data: dataPoints,
+              tension: 0.28,
+              fill: false,
+              borderWidth: 3,
+              pointRadius: 4,
+              pointHoverRadius: 5
+            }
+          ]
+        },
+        options: {
+          maintainAspectRatio: false,
+          animation: {
+            duration: 800
+          },
+          plugins: {
+            legend: {
+              display: true
+            }
+          },
+          scales: {
+            y: {
+              reverse: true,
+              title: {
+                display: true,
+                text: "Rank"
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: "Date"
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function applyFilterAndRender() {
+      const selectedSchoolId = schoolFilterEl.value;
+
+      let filtered = [...allRecords];
+
+      if (selectedSchoolId) {
+        filtered = filtered.filter(record => String(record.school_id) === String(selectedSchoolId));
+      }
+
+      filtered.sort((a, b) => new Date(b.update_date) - new Date(a.update_date));
+
+      if (!filtered.length) {
+        updateStats([]);
+        renderLatestUpdate(null);
+        renderPrediction([]);
+        renderTimeline([]);
+        if (movementChart) {
+          movementChart.destroy();
+          movementChart = null;
+        }
+        setStatus("No updates found for the selected school.", "warn");
+        return;
+      }
+
+      updateStats(filtered);
+      renderLatestUpdate(filtered[0]);
+      renderPrediction(filtered);
+      renderTimeline(filtered);
+      renderChart(filtered);
+
+      const schoolName = selectedSchoolId
+        ? allSchools.find(s => String(s.id) === String(selectedSchoolId))?.name || "selected school"
+        : "all schools";
+
+      setStatus(`Loaded ${filtered.length} update(s) for ${schoolName}.`, "success");
+    }
+
+    async function loadSchools() {
+      const { data, error } = await supabaseClient
+        .from("schools")
+        .select("id, name")
+        .order("name", { ascending: true });
+
+      if (error) {
+        throw error;
+      }
+
+      allSchools = data || [];
+
+      schoolFilterEl.innerHTML = '<option value="">All schools</option>';
+
+      allSchools.forEach(school => {
+        const option = document.createElement("option");
+        option.value = school.id;
+        option.textContent = school.name;
+        schoolFilterEl.appendChild(option);
       });
     }
 
     async function loadTimeline() {
       try {
-        setStatus("Loading updates from Supabase...", "loading");
+        setStatus("Loading updates from Supabase...", "info");
+
+        await loadSchools();
 
         const { data, error } = await supabaseClient
           .from("waiting_list_updates")
@@ -179,26 +849,39 @@
             )
           `)
           .order("update_date", { ascending: false })
-          .limit(50);
+          .limit(100);
 
         if (error) {
           throw error;
         }
 
-        if (!data || data.length === 0) {
-          timelineEl.innerHTML = "";
-          setStatus("No updates found yet. Add a row in Supabase Table Editor.", "empty");
+        lastRefreshedEl.textContent = `Last refreshed: ${new Date().toLocaleString()}`;
+        allRecords = data || [];
+
+        if (!allRecords.length) {
+          updateStats([]);
+          renderLatestUpdate(null);
+          renderPrediction([]);
+          renderTimeline([]);
+          if (movementChart) {
+            movementChart.destroy();
+            movementChart = null;
+          }
+          setStatus("No updates found yet. Add records in the admin tool.", "warn");
           return;
         }
 
-        renderTimeline(data);
-        setStatus(`Loaded ${data.length} update(s) successfully.`, "loading");
+        applyFilterAndRender();
       } catch (err) {
-        console.error("Error loading timeline:", err);
-        timelineEl.innerHTML = "";
+        console.error("Error loading dashboard:", err);
+        timelineEl.innerHTML = '<div class="empty-state">Could not load updates.</div>';
+        latestUpdateBlockEl.innerHTML = "Could not load latest update.";
+        predictionBlockEl.innerHTML = "Could not load prediction.";
         setStatus(`Error loading data: ${err.message}`, "error");
       }
     }
+
+    schoolFilterEl.addEventListener("change", applyFilterAndRender);
 
     loadTimeline();
   </script>
