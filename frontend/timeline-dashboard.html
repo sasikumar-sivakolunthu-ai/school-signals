@@ -61,6 +61,14 @@
       font-size: 16px;
     }
 
+    .top-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      align-items: flex-end;
+      min-width: 280px;
+    }
+
     .pill {
       display: inline-flex;
       align-items: center;
@@ -72,6 +80,31 @@
       color: var(--muted);
       box-shadow: var(--shadow);
       white-space: nowrap;
+    }
+
+    .filter-card {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      padding: 12px;
+      width: 100%;
+    }
+
+    .filter-card label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .filter-card select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font: inherit;
+      background: white;
     }
 
     .status {
@@ -112,12 +145,12 @@
     }
 
     .stats-grid {
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      grid-template-columns: repeat(5, minmax(0, 1fr));
       margin-bottom: 18px;
     }
 
     .content-grid {
-      grid-template-columns: 1.4fr 1fr;
+      grid-template-columns: 1.5fr 1fr;
       align-items: start;
     }
 
@@ -186,6 +219,30 @@
       margin-left: 8px;
     }
 
+    .tag.official {
+      background: #ecfdf5;
+      color: #166534;
+      border-color: #bbf7d0;
+    }
+
+    .tag.parent {
+      background: #fff7ed;
+      color: #9a3412;
+      border-color: #fed7aa;
+    }
+
+    .tag.forum {
+      background: #f3f4f6;
+      color: #4b5563;
+      border-color: #d1d5db;
+    }
+
+    .tag.unknown {
+      background: #f9fafb;
+      color: #6b7280;
+      border-color: #e5e7eb;
+    }
+
     .notes {
       margin-top: 14px;
       padding: 12px 14px;
@@ -197,7 +254,7 @@
     }
 
     .chart-wrap {
-      height: 320px;
+      height: 340px;
     }
 
     .timeline-list {
@@ -260,7 +317,7 @@
       background: #fff;
     }
 
-    @media (max-width: 980px) {
+    @media (max-width: 1080px) {
       .stats-grid {
         grid-template-columns: repeat(2, minmax(0, 1fr));
       }
@@ -270,9 +327,14 @@
       }
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: 700px) {
       .topbar {
         flex-direction: column;
+      }
+
+      .top-actions {
+        width: 100%;
+        align-items: stretch;
       }
 
       .stats-grid {
@@ -296,7 +358,17 @@
         <h1>School Signal Dashboard</h1>
         <p>Live admission movement intelligence powered by Supabase.</p>
       </div>
-      <div class="pill" id="lastRefreshed">Loading data...</div>
+
+      <div class="top-actions">
+        <div class="pill" id="lastRefreshed">Loading data...</div>
+
+        <div class="filter-card">
+          <label for="schoolFilter">School Selector</label>
+          <select id="schoolFilter">
+            <option value="">All schools</option>
+          </select>
+        </div>
+      </div>
     </div>
 
     <div id="status" class="status info">Loading updates from Supabase...</div>
@@ -321,6 +393,12 @@
       </div>
 
       <div class="card stat-card">
+        <div class="label">Movement Rate</div>
+        <div class="value" id="statMovementRate">-</div>
+        <div class="sub">Estimated places per week</div>
+      </div>
+
+      <div class="card stat-card">
         <div class="label">Average Confidence</div>
         <div class="value" id="statAvgConfidence">-</div>
         <div class="sub">Across loaded updates</div>
@@ -330,7 +408,7 @@
     <div class="grid content-grid">
       <div class="card">
         <h2 class="section-title">Movement Trend</h2>
-        <p class="section-subtitle">Rank progression over time for the selected dataset.</p>
+        <p class="section-subtitle">Lower rank numbers are better, so the chart climbs upward when the position improves.</p>
         <div class="chart-wrap">
           <canvas id="movementChart"></canvas>
         </div>
@@ -339,12 +417,17 @@
       <div class="card latest-card">
         <h2 class="section-title">Latest Update</h2>
         <div id="latestUpdateBlock" class="empty-state">No latest update available yet.</div>
+
+        <div style="margin-top: 18px;">
+          <h2 class="section-title" style="margin-bottom: 10px;">Prediction Card</h2>
+          <div id="predictionBlock" class="empty-state">Not enough data to generate a projection yet.</div>
+        </div>
       </div>
     </div>
 
     <div class="card" style="margin-top: 18px;">
       <h2 class="section-title">Timeline Feed</h2>
-      <p class="section-subtitle">Newest updates first, with notes and confidence level.</p>
+      <p class="section-subtitle">Newest updates first, with notes, confidence and source credibility.</p>
       <div id="timeline"></div>
     </div>
   </div>
@@ -364,13 +447,18 @@
     const timelineEl = document.getElementById("timeline");
     const lastRefreshedEl = document.getElementById("lastRefreshed");
     const latestUpdateBlockEl = document.getElementById("latestUpdateBlock");
+    const predictionBlockEl = document.getElementById("predictionBlock");
+    const schoolFilterEl = document.getElementById("schoolFilter");
 
     const statTotalUpdatesEl = document.getElementById("statTotalUpdates");
     const statLatestRankEl = document.getElementById("statLatestRank");
     const statMovementSpanEl = document.getElementById("statMovementSpan");
+    const statMovementRateEl = document.getElementById("statMovementRate");
     const statAvgConfidenceEl = document.getElementById("statAvgConfidence");
 
     let movementChart = null;
+    let allRecords = [];
+    let allSchools = [];
 
     function setStatus(message, type) {
       statusEl.textContent = message;
@@ -398,9 +486,91 @@
       return `Low (${n.toFixed(2)})`;
     }
 
+    function getSourceClass(source) {
+      const value = (source || "").toLowerCase();
+
+      if (value.includes("school website") || value.includes("official") || value.includes("school email")) {
+        return "official";
+      }
+      if (value.includes("parent")) {
+        return "parent";
+      }
+      if (value.includes("forum")) {
+        return "forum";
+      }
+      return "unknown";
+    }
+
+    function getSourceCredibilityLabel(source) {
+      const value = (source || "").toLowerCase();
+
+      if (value.includes("school website") || value.includes("official") || value.includes("school email")) {
+        return "Official";
+      }
+      if (value.includes("parent")) {
+        return "Parent";
+      }
+      if (value.includes("forum")) {
+        return "Forum";
+      }
+      return "Unknown";
+    }
+
     function formatDateForDisplay(dateString) {
       if (!dateString) return "-";
       return dateString;
+    }
+
+    function calculateMovementRate(records) {
+      if (!records || records.length < 2) return null;
+
+      const newest = records[0];
+      const oldest = records[records.length - 1];
+
+      if (
+        newest.rank_position === null || newest.rank_position === undefined ||
+        oldest.rank_position === null || oldest.rank_position === undefined
+      ) {
+        return null;
+      }
+
+      const newestDate = new Date(newest.update_date);
+      const oldestDate = new Date(oldest.update_date);
+      const diffMs = newestDate - oldestDate;
+      const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+      if (diffDays <= 0) return null;
+
+      const movement = oldest.rank_position - newest.rank_position;
+      const perWeek = (movement / diffDays) * 7;
+
+      return perWeek;
+    }
+
+    function buildPrediction(records) {
+      if (!records || records.length < 2) {
+        return null;
+      }
+
+      const latest = records[0];
+      const rate = calculateMovementRate(records);
+
+      if (rate === null || latest.rank_position === null || latest.rank_position === undefined) {
+        return null;
+      }
+
+      const projected4Weeks = Math.round(latest.rank_position - (rate * 4));
+      const boundedProjection = projected4Weeks < 1 ? 1 : projected4Weeks;
+
+      let confidence = "Low";
+      if (records.length >= 4) confidence = "High";
+      else if (records.length >= 3) confidence = "Medium";
+
+      return {
+        projectedRank4Weeks: boundedProjection,
+        weeklyRate: rate,
+        confidence
+      };
     }
 
     function updateStats(records) {
@@ -409,6 +579,7 @@
       if (records.length === 0) {
         statLatestRankEl.textContent = "-";
         statMovementSpanEl.textContent = "-";
+        statMovementRateEl.textContent = "-";
         statAvgConfidenceEl.textContent = "-";
         return;
       }
@@ -433,6 +604,10 @@
         statMovementSpanEl.textContent = "-";
       }
 
+      const movementRate = calculateMovementRate(records);
+      statMovementRateEl.textContent =
+        movementRate !== null ? `${Math.round(movementRate)}/wk` : "-";
+
       const confidenceValues = records
         .map(r => Number(r.confidence_score))
         .filter(v => !Number.isNaN(v));
@@ -456,6 +631,8 @@
       const date = formatDateForDisplay(record.update_date);
       const source = record.source || "-";
       const confidence = formatConfidenceLabel(record.confidence_score);
+      const sourceLabel = getSourceCredibilityLabel(source);
+      const sourceClass = getSourceClass(source);
       const notes = record.notes
         ? `<div class="notes">${escapeHtml(record.notes)}</div>`
         : "";
@@ -465,10 +642,32 @@
         <div class="latest-rank">Waiting list moved to rank <strong>${escapeHtml(rank)}</strong></div>
         <div class="meta-row">
           Date: ${escapeHtml(date)}
-          <span class="tag">${escapeHtml(source)}</span>
+          <span class="tag ${sourceClass}">${escapeHtml(sourceLabel)}</span>
           <span class="tag">${escapeHtml(confidence)}</span>
         </div>
         ${notes}
+      `;
+    }
+
+    function renderPrediction(records) {
+      const prediction = buildPrediction(records);
+
+      if (!prediction) {
+        predictionBlockEl.innerHTML = "Not enough data to generate a projection yet.";
+        return;
+      }
+
+      const trendText = prediction.weeklyRate > 0
+        ? `The list is improving at about ${Math.round(prediction.weeklyRate)} places per week.`
+        : `Movement is currently flat or unclear.`;
+
+      predictionBlockEl.innerHTML = `
+        <div style="font-size: 14px; color: #6b7280; margin-bottom: 8px;">4-week projection</div>
+        <div style="font-size: 28px; font-weight: 700; margin-bottom: 8px;">Rank ${prediction.projectedRank4Weeks}</div>
+        <div style="font-size: 14px; color: #374151; margin-bottom: 10px;">${trendText}</div>
+        <div>
+          <span class="tag">Confidence: ${escapeHtml(prediction.confidence)}</span>
+        </div>
       `;
     }
 
@@ -484,6 +683,8 @@
         const date = formatDateForDisplay(record.update_date);
         const source = record.source || "-";
         const confidence = formatConfidenceLabel(record.confidence_score);
+        const sourceLabel = getSourceCredibilityLabel(source);
+        const sourceClass = getSourceClass(source);
         const notes = record.notes
           ? `<div class="timeline-notes">${escapeHtml(record.notes)}</div>`
           : "";
@@ -499,6 +700,7 @@
             </div>
             <div class="timeline-meta">
               Source: ${escapeHtml(source)}
+              <span class="tag ${sourceClass}">${escapeHtml(sourceLabel)}</span>
               <span class="tag">${escapeHtml(confidence)}</span>
             </div>
             ${notes}
@@ -539,6 +741,9 @@
         },
         options: {
           maintainAspectRatio: false,
+          animation: {
+            duration: 800
+          },
           plugins: {
             legend: {
               display: true
@@ -563,9 +768,70 @@
       });
     }
 
+    function applyFilterAndRender() {
+      const selectedSchoolId = schoolFilterEl.value;
+
+      let filtered = [...allRecords];
+
+      if (selectedSchoolId) {
+        filtered = filtered.filter(record => String(record.school_id) === String(selectedSchoolId));
+      }
+
+      filtered.sort((a, b) => new Date(b.update_date) - new Date(a.update_date));
+
+      if (!filtered.length) {
+        updateStats([]);
+        renderLatestUpdate(null);
+        renderPrediction([]);
+        renderTimeline([]);
+        if (movementChart) {
+          movementChart.destroy();
+          movementChart = null;
+        }
+        setStatus("No updates found for the selected school.", "warn");
+        return;
+      }
+
+      updateStats(filtered);
+      renderLatestUpdate(filtered[0]);
+      renderPrediction(filtered);
+      renderTimeline(filtered);
+      renderChart(filtered);
+
+      const schoolName = selectedSchoolId
+        ? allSchools.find(s => String(s.id) === String(selectedSchoolId))?.name || "selected school"
+        : "all schools";
+
+      setStatus(`Loaded ${filtered.length} update(s) for ${schoolName}.`, "success");
+    }
+
+    async function loadSchools() {
+      const { data, error } = await supabaseClient
+        .from("schools")
+        .select("id, name")
+        .order("name", { ascending: true });
+
+      if (error) {
+        throw error;
+      }
+
+      allSchools = data || [];
+
+      schoolFilterEl.innerHTML = '<option value="">All schools</option>';
+
+      allSchools.forEach(school => {
+        const option = document.createElement("option");
+        option.value = school.id;
+        option.textContent = school.name;
+        schoolFilterEl.appendChild(option);
+      });
+    }
+
     async function loadTimeline() {
       try {
         setStatus("Loading updates from Supabase...", "info");
+
+        await loadSchools();
 
         const { data, error } = await supabaseClient
           .from("waiting_list_updates")
@@ -583,17 +849,19 @@
             )
           `)
           .order("update_date", { ascending: false })
-          .limit(50);
+          .limit(100);
 
         if (error) {
           throw error;
         }
 
         lastRefreshedEl.textContent = `Last refreshed: ${new Date().toLocaleString()}`;
+        allRecords = data || [];
 
-        if (!data || data.length === 0) {
+        if (!allRecords.length) {
           updateStats([]);
           renderLatestUpdate(null);
+          renderPrediction([]);
           renderTimeline([]);
           if (movementChart) {
             movementChart.destroy();
@@ -603,19 +871,17 @@
           return;
         }
 
-        updateStats(data);
-        renderLatestUpdate(data[0]);
-        renderTimeline(data);
-        renderChart(data);
-
-        setStatus(`Loaded ${data.length} update(s) successfully.`, "success");
+        applyFilterAndRender();
       } catch (err) {
         console.error("Error loading dashboard:", err);
         timelineEl.innerHTML = '<div class="empty-state">Could not load updates.</div>';
         latestUpdateBlockEl.innerHTML = "Could not load latest update.";
+        predictionBlockEl.innerHTML = "Could not load prediction.";
         setStatus(`Error loading data: ${err.message}`, "error");
       }
     }
+
+    schoolFilterEl.addEventListener("change", applyFilterAndRender);
 
     loadTimeline();
   </script>
