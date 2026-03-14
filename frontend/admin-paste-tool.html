@@ -3,81 +3,216 @@
 <head>
   <meta charset="UTF-8">
   <title>School Signal Admin</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 30px;
+      background: #f8fafc;
+      color: #111827;
+    }
+
+    h2 {
+      margin-bottom: 8px;
+    }
+
+    p {
+      margin-top: 0;
+      color: #4b5563;
+    }
+
+    label {
+      display: block;
+      margin-top: 14px;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    input, select, textarea, button {
+      font: inherit;
+    }
+
+    input, select, textarea {
+      width: 520px;
+      max-width: 100%;
+      padding: 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+
+    textarea {
+      min-height: 140px;
+      resize: vertical;
+    }
+
+    button {
+      margin-top: 18px;
+      padding: 10px 16px;
+      border: 1px solid #16a34a;
+      background: #22c55e;
+      color: white;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .status {
+      margin-top: 14px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 14px;
+      width: 520px;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    .info {
+      background: #eff6ff;
+      color: #1d4ed8;
+      border: 1px solid #bfdbfe;
+    }
+
+    .success {
+      background: #ecfdf5;
+      color: #166534;
+      border: 1px solid #bbf7d0;
+    }
+
+    .error {
+      background: #fef2f2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+    }
+  </style>
 </head>
 <body>
 
   <h2>School Signal Admin Paste Tool</h2>
+  <p>Insert waiting list updates into Supabase.</p>
 
-  <label>School Name</label>
-  <br>
-  <input type="text" id="school" placeholder="Enter school name">
-  <br><br>
+  <label for="school">School</label>
+  <select id="school">
+    <option value="">Loading schools...</option>
+  </select>
 
-  <label>Date</label>
-  <br>
+  <label for="date">Date</label>
   <input type="date" id="date">
-  <br><br>
 
-  <label>Source</label>
-  <br>
+  <label for="source">Source</label>
   <select id="source">
     <option>School Website</option>
     <option>Parent Report</option>
     <option>Forum</option>
   </select>
-  <br><br>
 
-  <label>Paste Update</label>
-  <br>
-  <textarea id="update" rows="6" cols="60"></textarea>
-  <br><br>
+  <label for="update">Paste Update</label>
+  <textarea id="update" placeholder="Example: Waiting list moved to rank 108 today"></textarea>
 
-  <button onclick="processUpdate()">Process Update</button>
+  <button id="processBtn">Process Update</button>
+
+  <div id="status" class="status info">Loading schools from Supabase...</div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const SUPABASE_URL = "https://qpcsjweadyhhwfbizlvm.supabase.co";
-    const SUPABASE_KEY = "sb_publishable_JqGyU1DvQRWV-In55Col1A_gza569Lo";
+    const SUPABASE_PUBLISHABLE_KEY = Supabase_API_KEY
+    //"sb_publishable_JqGyU1DvQRWV-In55Col1A_gza569Lo";
+  
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const schoolSelect = document.getElementById("school");
+    const dateInput = document.getElementById("date");
+    const sourceSelect = document.getElementById("source");
+    const updateInput = document.getElementById("update");
+    const processBtn = document.getElementById("processBtn");
+    const statusEl = document.getElementById("status");
+
+    function setStatus(message, type) {
+      statusEl.textContent = message;
+      statusEl.className = `status ${type}`;
+    }
+
+    async function loadSchools() {
+      try {
+        setStatus("Loading schools from Supabase...", "info");
+
+        const { data, error } = await supabaseClient
+          .from("schools")
+          .select("id, name")
+          .order("name", { ascending: true });
+
+        if (error) {
+          throw error;
+        }
+
+        schoolSelect.innerHTML = '<option value="">Select a school</option>';
+
+        data.forEach((school) => {
+          const option = document.createElement("option");
+          option.value = school.id;
+          option.textContent = school.name;
+          schoolSelect.appendChild(option);
+        });
+
+        setStatus(`Loaded ${data.length} school(s).`, "success");
+      } catch (err) {
+        console.error("Load schools error:", err);
+        schoolSelect.innerHTML = '<option value="">Failed to load schools</option>';
+        setStatus(`Error loading schools: ${err.message}`, "error");
+      }
+    }
 
     async function processUpdate() {
       try {
-        const school = document.getElementById("school").value.trim();
-        const date = document.getElementById("date").value;
-        const source = document.getElementById("source").value;
-        const update = document.getElementById("update").value.trim();
+        const schoolId = schoolSelect.value;
+        const selectedSchoolName = schoolSelect.options[schoolSelect.selectedIndex]?.text || "";
+        const date = dateInput.value;
+        const source = sourceSelect.value;
+        const update = updateInput.value.trim();
 
-        if (!school || !date || !update) {
-          alert("Please enter school, date and update text");
+        if (!schoolId || !date || !update) {
+          setStatus("Please select a school and enter date and update text.", "error");
           return;
         }
 
         const rankMatch = update.match(/\d+/);
         const rank = rankMatch ? parseInt(rankMatch[0], 10) : null;
 
-        const { data: schoolRow, error: schoolError } = await supabase
-          .from("schools")
-          .select("id, name")
-          .eq("name", school)
-          .single();
-
-        if (schoolError) {
-          console.error("School lookup error:", schoolError);
-          alert("School lookup failed: " + schoolError.message);
+        if (rank === null) {
+          setStatus("Could not detect a rank number in the update text.", "error");
           return;
         }
 
-        if (!schoolRow) {
-          alert("School not found in database");
+        processBtn.disabled = true;
+        setStatus(`Saving update for ${selectedSchoolName}...`, "info");
+
+                // Check for duplicate update
+        const { data: existing, error: duplicateError } = await supabaseClient
+          .from("waiting_list_updates")
+          .select("id")
+          .eq("school_id", schoolId)
+          .eq("rank_position", rank)
+          .eq("update_date", date);
+
+        if (duplicateError) {
+          throw duplicateError;
+        }
+
+        if (existing.length > 0) {
+          setStatus("Duplicate update detected. This record already exists.", "error");
+          processBtn.disabled = false;
           return;
         }
 
-        const { data, error } = await supabase
+        const { data, error } = await supabaseClient
           .from("waiting_list_updates")
           .insert([
             {
-              school_id: schoolRow.id,
+              school_id: schoolId,
               rank_position: rank,
               update_date: date,
               source: source,
@@ -88,22 +223,23 @@
           .select();
 
         if (error) {
-          console.error("Insert error:", error);
-          alert("Error saving update: " + error.message);
-          return;
+          throw error;
         }
 
         console.log("Insert success:", data);
-        alert("Update saved successfully");
 
-        document.getElementById("school").value = "";
-        document.getElementById("date").value = "";
-        document.getElementById("update").value = "";
+        updateInput.value = "";
+        setStatus(`Update saved successfully for ${selectedSchoolName}.`, "success");
       } catch (err) {
-        console.error("Unexpected error:", err);
-        alert("Unexpected error: " + err.message);
+        console.error("Insert error:", err);
+        setStatus(`Error saving update: ${err.message}`, "error");
+      } finally {
+        processBtn.disabled = false;
       }
     }
+
+    processBtn.addEventListener("click", processUpdate);
+    loadSchools();
   </script>
 
 </body>
