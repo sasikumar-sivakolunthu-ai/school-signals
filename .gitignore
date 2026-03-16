@@ -70,6 +70,9 @@ web_modules/
 .env.*
 !.env.example
 
+# Supabase credentials — copy config.example.js → config.js and fill in values
+frontend/config.js
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache

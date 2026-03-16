@@ -434,9 +434,10 @@
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="config.js"></script>
   <script>
-    const SUPABASE_URL = "https://qpcsjweadyhhwfbizlvm.supabase.co";
-    const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_JqGyU1DvQRWV-In55Col1A_gza569Lo";
+    const SUPABASE_URL = window.SUPABASE_URL;
+    const SUPABASE_PUBLISHABLE_KEY = window.SUPABASE_PUBLISHABLE_KEY;
 
     const supabaseClient = window.supabase.createClient(
       SUPABASE_URL,
