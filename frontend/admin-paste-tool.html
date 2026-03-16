@@ -117,11 +117,10 @@
   <div id="status" class="status info">Loading schools from Supabase...</div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="config.js"></script>
   <script>
-    const SUPABASE_URL = "https://qpcsjweadyhhwfbizlvm.supabase.co";
-    const SUPABASE_PUBLISHABLE_KEY = Supabase_API_KEY
-    //"SUPABASE_PUBLISHABLE_KEY";
-    //const SUPABASE_KEY = "SUPABASE_SECRET_KEY";
+    const SUPABASE_URL = window.SUPABASE_URL;
+    const SUPABASE_PUBLISHABLE_KEY = window.SUPABASE_PUBLISHABLE_KEY;
 
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY);
 
